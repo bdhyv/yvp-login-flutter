@@ -1,66 +1,102 @@
 # YouVersion Login SDK for Flutter
 
-A Flutter SDK that provides a simple way to integrate YouVersion login into your Flutter applications.
+A Flutter package that provides easy integration with YouVersion login functionality.
 
 ## Features
 
-- Cross-platform support (Web, iOS, Android)
-- Simple API for login integration
-- Handles OAuth flow automatically
-- Returns authorization code for further processing
+- Simple "Login with YouVersion" button widget
+- Handles both web and mobile authentication flows
+- Returns LAT token and additional parameters
+- Supports custom styling and callbacks
 
 ## Installation
 
-Add the SDK to your `pubspec.yaml`:
+Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
   yvp_login_sdk:
-    path: ../path/to/yvp_login_sdk
+    path: ../yvp_login_sdk  # Adjust the path as needed
 ```
 
 ## Usage
 
-1. Initialize the SDK with your credentials:
+### Basic Integration
+
+1. Initialize the SDK with your app ID:
 
 ```dart
 final sdk = YvpLoginSdk(
-  clientId: 'your_client_id',
-  clientSecret: 'your_client_secret',
-  redirectUri: 'http://localhost:3000/authenticate', // For web
   appId: 'your_app_id',
+  environment: YvpEnvironment.production, // or YvpEnvironment.local for development
 );
 ```
 
-2. Call the login method and handle the result:
+2. Add the login button to your UI:
 
 ```dart
-try {
-  final result = await sdk.login();
-  if (result.isSuccess) {
-    final code = result.code;
-    // Use the authorization code to get access tokens, etc.
-    print('Login successful! Code: $code');
-  } else {
-    final error = result.error;
-    // Handle the error
-    print('Login failed: $error');
-  }
-} catch (e) {
-  // Handle any unexpected errors
-  print('Error: $e');
-}
+YvpLoginButton(
+  sdk: sdk,
+  onSuccess: (lat, params) {
+    // Handle successful login
+    print('LAT token: $lat');
+    print('Additional params: $params');
+  },
+  onError: (error) {
+    // Handle login error
+    print('Login error: $error');
+  },
+)
 ```
 
-## Platform Configuration
+### Custom Styling
 
-### Web
+You can customize the button's appearance:
 
-For web platforms, the redirect URI should be a valid web URL that your application can handle. The SDK will automatically handle the OAuth flow in a popup window.
+```dart
+YvpLoginButton(
+  sdk: sdk,
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.blue,
+    // Add more custom styles
+  ),
+  child: const Text('Custom Login Text'),
+)
+```
 
-### iOS
+### Callback Parameters
 
-Add the following to your `Info.plist`:
+The SDK returns the following parameters in the success callback:
+
+- `lat`: The login access token
+- `yvp_user_id`: The YouVersion user ID
+- `status`: The login status (usually "success")
+
+## Web Integration
+
+For web applications, make sure to:
+
+1. Configure your callback URL in the YouVersion developer portal
+2. Handle the redirect in your web application
+
+## Mobile Integration
+
+For mobile applications:
+
+1. Add the following to your `AndroidManifest.xml`:
+
+```xml
+<activity android:name="com.linusu.flutter_web_auth_2.CallbackActivity">
+    <intent-filter android:label="flutter_web_auth_2">
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="yvp{your_app_id}" />
+    </intent-filter>
+</activity>
+```
+
+2. Add the following to your `Info.plist`:
 
 ```xml
 <key>CFBundleURLTypes</key>
@@ -74,104 +110,10 @@ Add the following to your `Info.plist`:
 </array>
 ```
 
-### Android
-
-Add the following to your `AndroidManifest.xml` inside the `<activity>` tag:
-
-```xml
-<intent-filter>
-    <action android:name="android.intent.action.VIEW" />
-    <category android:name="android.intent.category.DEFAULT" />
-    <category android:name="android.intent.category.BROWSABLE" />
-    <data android:scheme="yvp{your_app_id}" />
-</intent-filter>
-```
-
 ## Example
 
-Here's a complete example of how to use the SDK in a Flutter app:
-
-```dart
-import 'package:flutter/material.dart';
-import 'package:yvp_login_sdk/yvp_login_sdk.dart';
-
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'YouVersion Login Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const LoginPage(),
-    );
-  }
-}
-
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
-
-  @override
-  State<LoginPage> createState() => _LoginPageState();
-}
-
-class _LoginPageState extends State<LoginPage> {
-  final _sdk = YvpLoginSdk(
-    clientId: 'your_client_id',
-    clientSecret: 'your_client_secret',
-    redirectUri: 'http://localhost:3000/authenticate',
-    appId: 'your_app_id',
-  );
-
-  Future<void> _handleLogin() async {
-    try {
-      final result = await _sdk.login();
-      if (result.isSuccess) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Login successful! Code: ${result.code}')),
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Login failed: ${result.error}')),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('YouVersion Login Demo'),
-      ),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: _handleLogin,
-          child: const Text('Login with YouVersion'),
-        ),
-      ),
-    );
-  }
-}
-```
+See the example app in the `example` directory for a complete implementation.
 
 ## License
 
-This SDK is provided under the MIT License. 
+This package is licensed under the MIT License. 

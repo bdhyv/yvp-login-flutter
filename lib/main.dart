@@ -194,9 +194,22 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _handleLogin,
-              child: const Text('Login with YouVersion'),
+            YvpLoginButton(
+              sdk: _sdk,
+              onSuccess: (lat, params) {
+                setState(() {
+                  _lat = lat;
+                  _authParams = params;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Login successful!')),
+                );
+              },
+              onError: (error) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Login failed: $error')),
+                );
+              },
             ),
             if (_lat != null) ...[
               const SizedBox(height: 20),
