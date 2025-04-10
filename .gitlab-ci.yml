@@ -1,0 +1,32 @@
+image: ghcr.io/cirruslabs/flutter:3.16.9
+
+stages:
+  - build
+  - deploy
+
+cache:
+  paths:
+    - .pub-cache  # Adjusted to reduce potential cache issues
+
+build:
+  stage: build
+  script:
+    - flutter clean
+    - flutter pub get
+    - flutter build web --release --base-href "/youversion/platform/yvp-login-flutter/"
+  artifacts:
+    paths:
+      - build/web
+    expire_in: 1 week
+
+pages:
+  stage: deploy
+  script:
+    - mkdir -p public
+    - cp -r build/web/* public/
+  artifacts:
+    paths:
+      - public
+    expire_in: 1 month  # Artifacts retain in case of GitLab Pages redeployment issues
+  only:
+    - main
