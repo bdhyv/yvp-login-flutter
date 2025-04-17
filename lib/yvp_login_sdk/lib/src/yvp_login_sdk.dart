@@ -1,58 +1,61 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'dart:html' as html;
 import 'dart:async';
 
 /// Configuration for different environments
 class YvpEnvironment {
-  final String authHost;
-  final String redirectHost;
-  final int? authPort;
-  final int? redirectPort;
-  final String redirectPath;
+  final String host;
+  final int? port;
   final bool useHttps;
-  final String clientId;
-  final String clientSecret;
-  final String callbackUri;
+  final String loginPath;
 
   const YvpEnvironment({
-    required this.authHost,
-    required this.redirectHost,
-    this.authPort,
-    this.redirectPort,
-    required this.redirectPath,
+    required this.host,
+    this.port,
     required this.useHttps,
-    required this.clientId,
-    required this.clientSecret,
-    required this.callbackUri,
+    required this.loginPath,
   });
+
+  /// Get the base URL for this environment
+  String get baseUrl {
+    final scheme = useHttps ? 'https' : 'http';
+    final portString = port != null ? ':$port' : '';
+    return '$scheme://$host$portString';
+  }
+
+  /// Get the login URL for this environment
+  String getLoginUrl(String appId, String language,
+      {int? localhostCallbackPort}) {
+    final url = Uri.parse('$baseUrl$loginPath');
+
+    final queryParams = {
+      'app_id': appId,
+      'language': language,
+    };
+
+    // Add localhost_callback_port param only for local environment if provided
+    if (this == YvpEnvironment.local && localhostCallbackPort != null) {
+      queryParams['localhost_callback_port'] = localhostCallbackPort.toString();
+    }
+
+    return url.replace(queryParameters: queryParams).toString();
+  }
 
   /// Local development environment
   static const local = YvpEnvironment(
-    authHost: 'localhost',
-    redirectHost: 'localhost',
-    authPort: 3001,
-    redirectPort: 3000,
-    redirectPath: '/authenticate',
+    host: 'localhost',
+    port: 3000,
+    loginPath: '/login',
     useHttps: false,
-    clientId: '618ab8038deee8f4ab48e1ccc122e320',
-    clientSecret: '3ce345b71168a613540ed1e268bac402',
-    callbackUri: 'http://localhost:3000/authenticate',
   );
 
   /// Production environment
   static const production = YvpEnvironment(
-    authHost: 'login-staging.youversion.com',
-    redirectHost: 'biblesdk-web-890431326916.us-central1.run.app',
-    authPort: null,
-    redirectPort: null,
-    redirectPath: '/auth/callback',
+    host: 'login-staging.youversion.com',
+    port: null,
+    loginPath: '/login',
     useHttps: true,
-    clientId: '5d00f7937d507f61b8fcfc693c32095e',
-    clientSecret: '311cbf75048acbd93fa01d3d543fa945',
-    callbackUri:
-        'https://biblesdk-web-890431326916.us-central1.run.app/auth/callback',
   );
 }
 
@@ -77,52 +80,21 @@ class LoginResult {
 class YvpLoginSdk {
   final String appId;
   final YvpEnvironment environment;
+  final String language;
 
   YvpLoginSdk({
     required this.appId,
     required this.environment,
+    this.language = 'en',
   });
 
   String get _callbackUrlScheme {
     if (kIsWeb) {
-      return Uri.parse(environment.callbackUri).scheme;
+      return 'http';
     } else {
       // For mobile, use a custom URL scheme based on the app ID
       return 'yvp$appId';
     }
-  }
-
-  String get _mobileRedirectUri {
-    return 'yvp$appId://authenticate';
-  }
-
-  /// Constructs the authentication URL with all necessary parameters
-  String _buildAuthUrl(String callbackUri) {
-    final scheme = environment.useHttps ? 'https' : 'http';
-
-    final redirectUrl = Uri(
-      scheme: environment.useHttps ? 'https' : 'http',
-      host: environment.redirectHost,
-      port: environment.redirectPort,
-      path: environment.redirectPath,
-      queryParameters: {
-        'app_id': appId,
-        'callback_uri': environment.authHost == 'localhost'
-            ? callbackUri
-            : 'https://lifechurch.gitlab.io/biblelabs/yvp-login-flutter',
-      },
-    ).toString();
-
-    return Uri(
-      scheme: scheme,
-      host: environment.authHost,
-      port: environment.authPort,
-      queryParameters: {
-        'client_id': environment.clientId,
-        'client_secret': environment.clientSecret,
-        'redirect_uri': redirectUrl,
-      },
-    ).toString();
   }
 
   Future<LoginResult> _handleWebAuth() async {
@@ -132,8 +104,9 @@ class YvpLoginSdk {
     final currentPort = Uri.base.port;
     debugPrint('Current Flutter app port: $currentPort');
 
-    final callbackUri = 'http://localhost:$currentPort/';
-    final authUrl = _buildAuthUrl(callbackUri);
+    final authUrl = environment.getLoginUrl(appId, language,
+        localhostCallbackPort:
+            environment == YvpEnvironment.local ? currentPort : null);
 
     debugPrint('Opening popup with URL: $authUrl');
     // Open the auth URL in a popup window
@@ -205,8 +178,9 @@ class YvpLoginSdk {
         final currentPort = Uri.base.port;
         debugPrint('Current Flutter app port: $currentPort');
 
-        final callbackUri = 'http://localhost:$currentPort/';
-        final authUrl = _buildAuthUrl(callbackUri);
+        final authUrl = environment.getLoginUrl(appId, language,
+            localhostCallbackPort:
+                environment == YvpEnvironment.local ? currentPort : null);
 
         debugPrint('Starting mobile authentication with URL: $authUrl');
         final result = await FlutterWebAuth2.authenticate(
