@@ -46,15 +46,24 @@ class YvpEnvironment {
   static const local = YvpEnvironment(
     host: 'localhost',
     port: 3000,
-    loginPath: '/login',
+    loginPath: '/auth/login',
+    useHttps: false,
+  );
+
+  /// Android emulator environment
+  static const emulator = YvpEnvironment(
+    host: '10.0.2.2',
+    port: 3000,
+    loginPath: '/auth/login',
     useHttps: false,
   );
 
   /// Production environment
   static const production = YvpEnvironment(
-    host: 'login-staging.youversion.com',
+    host: 'api-dev.youversion.com',
+    //host: 'biblesdk-web-446696173378.us-central1.run.app',
     port: null,
-    loginPath: '/login',
+    loginPath: '/auth/login',
     useHttps: true,
   );
 }

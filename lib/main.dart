@@ -79,8 +79,8 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   static const environment =
-      //YvpEnvironment.local; // or YvpEnvironment.production
-      YvpEnvironment.production;
+      YvpEnvironment.production; // or YvpEnvironment.production
+  //YvpEnvironment.production;
 
   final _sdk = YvpLoginSdk(
     appId: 'demo_app',
